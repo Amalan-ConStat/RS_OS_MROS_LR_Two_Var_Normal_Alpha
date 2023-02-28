@@ -1,0 +1,440 @@
+---
+params:
+  Model_Path:
+title: "OSMAC_Model_Free_Method; Model: `r params$Model_Path`; "
+author: "M.Amalan"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,fig.height = 9,fig.width = 9,message = FALSE,warning=FALSE)
+library(ggplot2)
+library(here)
+library(dplyr)
+library(tidyr)
+library(gganimate)
+library(LaplacesDemon)
+library(linguisticsdown)
+library(gganimate)
+library(viridis)
+library(compiler)
+library(data.table)
+library(ggpubr)
+
+# Cordeiro Error ----
+Cordeiro<-function(XData,With_bias)
+{
+  p <- as.vector(invlogit(XData%*%as.vector(With_bias)))
+  W <- diag(p*(1-p))
+  inverse_term <- solve(t(XData)%*%W%*%XData)
+  
+  Term1 <- inverse_term%*%t(XData)%*%W
+  Term2 <- diag(diag(XData%*%(inverse_term)%*%t(XData))) %*% as.matrix(p-0.5)
+  
+  bias <- as.vector(Term1%*%Term2)
+  return(bias)
+}  
+
+Cordeiro<-cmpfun(Cordeiro)
+
+FullDataPath<-here("Identical_r0","Generate_Big_Data",params$Model_Path,"No_Correlated_Covariate.RData")
+load(here(FullDataPath))
+Full_model<-glm(Y_Data~.-1,data = as.data.frame(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in%
+                                                                    c("Y_Data",Simulated_Data$All_Models$Real_Model)]),family = binomial)
+Real_Vline<-data.frame("Theta"=c(paste0("Theta",0:length(Simulated_Data$Theta[-1]))),"Values"=Simulated_Data$Theta)
+Estimated_Vline<-data.frame("Theta"=c(paste0("Theta",0:length(Simulated_Data$Theta[-1]))),"Values"=Full_model$coefficients)
+Bias_Vline<-data.frame("Theta"=c(paste0("Theta",0:length(Simulated_Data$Theta[-1]))),"Values"=0)
+```
+
+# OSMAC ;  Response Model : `r params$Model_Path` 
+
+## Real Model Data
+
+```{r Load Data Equal}
+Path<-here("Non_Identical_r0","Outputs",params$Model_Path,"OSMAC_Model_Free/")
+load(here(Path,"OSMAC_MF_Equal_output.RData"))
+
+Est_Parameter_MF_Equal<-rbind.data.frame(Results_OSMAC_1$mMSE_Output,
+                                         Results_OSMAC_1$mVc_Output)
+
+Est_Bias_MF_Equal<-rbind.data.frame(Bias_OSMAC_1$mMSE_Output,
+                                    Bias_OSMAC_1$mVc_Output)
+
+Utility_MF_Equal<-rbind.data.frame(Utility_OSMAC_1$mMSE_Output,
+                                    Utility_OSMAC_1$mVc_Output)
+
+colnames(Est_Parameter_MF_Equal)<-c("Type","Subsample_Size",paste0("Theta",0:length(Simulated_Data$Theta[-1])))
+colnames(Est_Bias_MF_Equal)<-c("Type","Subsample_Size",paste0("Theta",0:length(Simulated_Data$Theta[-1])))
+colnames(Utility_MF_Equal)<-c("Type","Subsample_Size","A_optimality","D_optimality")
+
+remove(Results_OSMAC,Bias_OSMAC,Utility_OSMAC)
+```
+
+```{r Load Data UnEqual}
+Path<-here("Non_Identical_r0","Outputs",params$Model_Path,"OSMAC_Model_Free/")
+load(here(Path,"OSMAC_MF_UnEqual_output.RData"))
+
+Est_Parameter_MF_UnEqual<-rbind.data.frame(Results_OSMAC_1$mMSE_Output,
+                                           Results_OSMAC_1$mVc_Output)
+
+Est_Bias_MF_UnEqual<-rbind.data.frame(Bias_OSMAC_1$mMSE_Output,
+                                      Bias_OSMAC_1$mVc_Output)
+
+Utility_MF_UnEqual<-rbind.data.frame(Utility_OSMAC_1$mMSE_Output,
+                                     Utility_OSMAC_1$mVc_Output)
+
+colnames(Est_Parameter_MF_UnEqual)<-c("Type","Subsample_Size",paste0("Theta",0:length(Simulated_Data$Theta[-1])))
+colnames(Est_Bias_MF_UnEqual)<-c("Type","Subsample_Size",paste0("Theta",0:length(Simulated_Data$Theta[-1])))
+colnames(Utility_MF_UnEqual)<-c("Type","Subsample_Size","A_optimality","D_optimality")
+
+remove(Results_OSMAC,Bias_OSMAC,Utility_OSMAC)
+```
+
+```{r Combine all datasets}
+Est_Parameter<-rbind(cbind(Model="Model Free Equal",Est_Parameter_MF_Equal),
+                     cbind(Model="Model Free UnEqual",Est_Parameter_MF_UnEqual))
+
+remove(Est_Parameter_MF_Equal,Est_Parameter_MF_UnEqual)
+
+Est_Bias<-rbind(cbind(Model="Model Free Equal",Est_Bias_MF_Equal),
+                cbind(Model="Model Free UnEqual",Est_Bias_MF_UnEqual))
+
+remove(Est_Bias_MF_Equal,Est_Bias_MF_UnEqual)
+
+Est_Utility<-rbind(cbind(Model="Model Free Equal",Utility_MF_Equal),
+                   cbind(Model="Model Free UnEqual",Utility_MF_UnEqual))
+
+remove(Utility_MF_Equal,Utility_MF_UnEqual)
+remove(list=paste0("Results_OSMAC_",1:16))
+remove(list=paste0("Utility_OSMAC_",1:16))
+remove(list=paste0("Bias_OSMAC_",1:16))
+```
+
+## Parameters
+
+```{r Animated Plots RM}
+Est_Parameter %>%
+  pivot_longer(starts_with("Theta"), names_to = "Theta", values_to = "Estimated") %>%
+ggplot(., aes(x = Estimated, group = as.factor(Model), frame=Subsample_Size,fill=factor(Model))) + 
+  geom_histogram(binwidth = 0.02,alpha=0.8)+
+  facet_grid(Type~Theta,scales = "free_x",shrink = TRUE)+
+  geom_vline(data= Estimated_Vline,aes(xintercept = Values,color="red"),linetype='dashed',size=1)+
+  scale_color_discrete(name = "Parameter values", labels = c("Estimated"))+
+  labs(title=paste0("Real Model :",params$Model_Path," Data : Estimated Theta"),
+      subtitle = "Sub-sample Size: {current_frame}")+
+  transition_manual(Subsample_Size)+
+  theme_light()+ylab("Frequency")+xlab("Estimates")->para_1
+
+anim_save(filename="para_1.gif",animation = para_1,
+          path=here("Non_Identical_r0","htmloutputs",params$Model_Path,"OSMAC_Model_Free","Plots"))
+
+include_graphics2(here("Non_Identical_r0","htmloutputs",params$Model_Path,"OSMAC_Model_Free","Plots","para_1.gif"))
+```
+
+## Bias
+
+```{r Animated Plots for Bias RM}
+Est_Bias %>%
+  pivot_longer(starts_with("Theta"), names_to = "Theta", values_to = "Estimated") %>%
+ggplot(., aes(x = Estimated, group = as.factor(Model), frame=Subsample_Size,fill=factor(Model))) + 
+  geom_histogram(binwidth = 0.01,alpha=0.8)+
+  facet_grid(Type~Theta,scales = "free_x",shrink = TRUE)+
+  geom_vline(data= Bias_Vline,aes(xintercept = Values,color="red"),linetype='dashed',size=1)+
+  scale_color_discrete(name = "Bias values", labels = c("Real"))+
+  labs(title=paste0("Real Model :",params$Model_Path," Data : Estimated Bias"),
+      subtitle = "Sub-sample Size: {current_frame}")+
+  transition_manual(Subsample_Size)+theme_light()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  ylab("Frequency")+xlab("Estimates")->Bias_1
+
+anim_save(filename="Bias_1.gif",animation = Bias_1,
+          path=here("Non_Identical_r0","htmloutputs",params$Model_Path,"OSMAC_Model_Free","Plots"))
+
+include_graphics2(here("Non_Identical_r0","htmloutputs",params$Model_Path,"OSMAC_Model_Free","Plots","Bias_1.gif"))
+```
+
+## Utility values
+
+```{r Animated Utility plots RM,fig.width=7,fig.height=7}
+Est_Utility %>%
+  ggplot(.,aes(x=log(A_optimality),fill=Model))+
+  geom_histogram()+facet_wrap(~Type)+
+  theme_light()+ylab("Frequency")+xlab("log(A-optimality)")+
+  transition_states(Subsample_Size)+
+  ggtitle("Real Model : Subsample : {closest_state}")->U_1
+
+anim_save(filename="U_1.gif",animation = U_1,
+          path=here("Non_Identical_r0","htmloutputs",params$Model_Path,"OSMAC_Model_Free","Plots"))
+
+include_graphics2(here("Non_Identical_r0","htmloutputs",params$Model_Path,"OSMAC_Model_Free","Plots","U_1.gif"))
+
+Est_Utility %>%
+  ggplot(.,aes(x=log(D_optimality),fill=Model))+
+  geom_histogram()+facet_wrap(~Type)+
+  theme_light()+ylab("Frequency")+xlab("log(D-optimality) ")+
+  transition_states(Subsample_Size)+
+  ggtitle("Real Model : Subsample : {closest_state}")->U_2
+
+anim_save(filename="U_2.gif",animation = U_2,
+          path=here("Non_Identical_r0","htmloutputs",params$Model_Path,"OSMAC_Model_Free","Plots"))
+
+include_graphics2(here("Non_Identical_r0","htmloutputs",params$Model_Path,"OSMAC_Model_Free","Plots","U_2.gif"))
+```
+
+# Comparison for Efficiency
+
+```{r Comparison of Summary Data}
+Final_MSE<-function(Real,Estimated_1,Estimated_2,Estimated_3,Estimated_4,Model)
+{
+  For_Theta0<-sum((Real[1]-Estimated_1)^2,na.rm = TRUE)
+  For_Theta1<-sum((Real[2]-Estimated_2)^2,na.rm = TRUE)
+  For_Theta2<-sum((Real[3]-Estimated_3)^2,na.rm = TRUE)
+  
+  if(Model=="Model_1")
+  {
+    return((For_Theta0+For_Theta1+For_Theta2)/length(Estimated_1))
+  }  
+  if(Model=="Model_2")
+  {
+    For_Theta3<-sum((Real[4]-Estimated_4)^2,na.rm = TRUE)
+    return((For_Theta0+For_Theta1+For_Theta2+For_Theta3)/length(Estimated_1))
+  }
+}
+
+# Summarise A- optimality
+Est_Utility %>%
+  dplyr::select(Type,Model,Subsample_Size,A_optimality) %>%
+  group_by(Type,Model,Subsample_Size) %>%
+  mutate(mean_Variance=mean(A_optimality))%>%
+  distinct(mean_Variance) %>% 
+  forestmangr::round_df(8)->All_VAR  
+
+# Summarise D- optimality
+Est_Utility %>%
+  dplyr::select(Type,Model,Subsample_Size,D_optimality) %>%
+  group_by(Type,Model,Subsample_Size) %>%
+  mutate(mean_Info=mean(D_optimality))%>%
+  distinct(mean_Info) %>% 
+  forestmangr::round_df(8)->All_Info  
+
+# Model 1
+if(params$Model_Path=="Model_1")
+{
+  # Summarize SMSE
+  Est_Parameter %>%
+    dplyr::select(Type,Model,Subsample_Size,Theta0,Theta1,Theta2) %>%
+    group_by(Type,Model,Subsample_Size) %>%
+    mutate( MSE=Final_MSE(Real = Real_Vline$Values,
+                            Estimated_1=Theta0, 
+                            Estimated_2=Theta1,
+                            Estimated_3=Theta2,
+                            Model = params$Model_Path ))%>%
+    distinct(MSE) %>% 
+    forestmangr::round_df(8)->All_MSE
+  
+  # Summarize SMSE MLE
+  Est_Parameter %>%
+    dplyr::select(Type,Model,Subsample_Size,Theta0,Theta1,Theta2) %>%
+    group_by(Type,Model,Subsample_Size) %>%
+    mutate( MSE=Final_MSE(Real = Estimated_Vline$Values,
+                            Estimated_1=Theta0, 
+                            Estimated_2=Theta1,
+                            Estimated_3=Theta2,
+                            Model = params$Model_Path ))%>%
+    distinct(MSE) %>% 
+    forestmangr::round_df(8)->All_MSE_MLE
+  
+  # Summarise Bias
+  Est_Bias %>%
+    dplyr::select(Type,Model,Subsample_Size,Theta0,Theta1,Theta2) %>%
+    group_by(Type,Model,Subsample_Size) %>%
+    mutate(mean_Bias=mean(sqrt(Theta0*Theta0 + Theta1*Theta1 + 
+                                 Theta2*Theta2)) )%>%
+    distinct(mean_Bias) %>% 
+    forestmangr::round_df(8)->All_Bias
+  
+  # Summarise Bias = sqrt(Bias^2)
+  Est_Bias %>%
+    dplyr::select(Type,Model,Subsample_Size,Theta0,Theta1,Theta2) %>%
+    group_by(Type,Model,Subsample_Size) %>%
+    mutate(mean_Bias=mean(Theta0*Theta0 + Theta1*Theta1 +
+                            Theta2*Theta2) )%>%
+    distinct(mean_Bias) %>% 
+    forestmangr::round_df(4)->All_Bias_squared
+}
+
+# Model 2
+if(params$Model_Path=="Model_2")
+{
+  # Summarize SMSE
+  Est_Parameter %>%
+    dplyr::select(Type,Model,Subsample_Size,Theta0,Theta1,Theta2,Theta3) %>%
+    group_by(Type,Model,Subsample_Size) %>%
+    mutate( MSE=Final_MSE(Real = Real_Vline$Values,
+                            Estimated_1=Theta0, 
+                            Estimated_2=Theta1,
+                            Estimated_3=Theta2,
+                            Estimated_4=Theta3,
+                            Model = params$Model_Path ))%>%
+    distinct(MSE) %>% 
+    forestmangr::round_df(8)->All_MSE
+  
+  # Summarize SMSE MLE
+  Est_Parameter %>%
+    dplyr::select(Type,Model,Subsample_Size,Theta0,Theta1,Theta2,Theta3) %>%
+    group_by(Type,Model,Subsample_Size) %>%
+    mutate( MSE=Final_MSE(Real = Estimated_Vline$Values,
+                            Estimated_1=Theta0, 
+                            Estimated_2=Theta1,
+                            Estimated_3=Theta2,
+                            Estimated_4=Theta3,
+                            Model = params$Model_Path ))%>%
+    distinct(MSE) %>% 
+    forestmangr::round_df(8)->All_MSE_MLE
+  
+  # Summarise Bias
+  Est_Bias %>%
+    dplyr::select(Type,Model,Subsample_Size,Theta0,Theta1,Theta2,Theta3) %>%
+    group_by(Type,Model,Subsample_Size) %>%
+    mutate(mean_Bias=mean(sqrt(Theta0*Theta0 + Theta1*Theta1 + 
+                                 Theta2*Theta2 + Theta3*Theta3)) )%>%
+    distinct(mean_Bias) %>% 
+    forestmangr::round_df(8)->All_Bias
+
+  # Summarise Bias = sqrt(Bias^2)
+  Est_Bias %>%
+    dplyr::select(Type,Model,Subsample_Size,Theta0,Theta1,Theta2,Theta3) %>%
+    group_by(Type,Model,Subsample_Size) %>%
+    mutate(mean_Bias=mean(Theta0*Theta0 + Theta1*Theta1 + 
+                          Theta2*Theta2 + Theta3*Theta3 ) )%>%
+    distinct(mean_Bias) %>% 
+    forestmangr::round_df(4)->All_Bias_squared
+}
+
+# Summarise EMSE
+inner_join(All_VAR,All_Bias_squared,by=c('Type',"Model","Subsample_Size")) %>%
+  mutate(EMSE=mean_Variance+mean_Bias) %>%
+  select(Type,Model,Subsample_Size,EMSE)->All_EMSE
+colnames(All_EMSE)<-c('Type',"Model","Subsample_Size","EMSE")
+
+# Full Data model Estimates
+Full_Est_Parameter<-as.data.frame(t(Estimated_Vline$Values))
+Full_Est_Bias<-as.data.frame(t(Cordeiro(XData = Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% 
+                                                                          Simulated_Data$All_Models$Real_Model ] ,
+                                      With_bias = as.matrix(Full_Est_Parameter))))
+colnames(Full_Est_Parameter)<-colnames(Full_Est_Bias)<-c(paste0("Theta",0:length(Simulated_Data$Basic$Theta[-1])))
+
+Full_Bias<-sqrt(sum(Full_Est_Bias^2))
+Temp_P<-invlogit(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% Simulated_Data$All_Models$Real_Model]%*%
+                   t(as.matrix(Full_Est_Parameter)))
+Temp_W<-diag(as.vector(Temp_P*(1-Temp_P)))
+Temp_Info<-t(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% Simulated_Data$All_Models$Real_Model]) %*% 
+  Temp_W %*% Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% Simulated_Data$All_Models$Real_Model]
+Full_Variance<-tr(solve(Temp_Info))
+Full_Information<-det(Temp_Info)
+
+if(params$Model_Path=="Model_1")
+{
+  Full_SMSE<-Final_MSE(Real=Real_Vline$Values,
+                       Estimated_1 = Full_Est_Parameter$Theta0,
+                       Estimated_2 = Full_Est_Parameter$Theta1,
+                       Estimated_3 = Full_Est_Parameter$Theta2,
+                       Model=params$Model_Path)
+}
+
+if(params$Model_Path=="Model_2")
+{
+  Full_SMSE<-Final_MSE(Real=Real_Vline$Values,
+                       Estimated_1 = Full_Est_Parameter$Theta0,
+                       Estimated_2 = Full_Est_Parameter$Theta1,
+                       Estimated_3 = Full_Est_Parameter$Theta2,
+                       Estimated_4 = Full_Est_Parameter$Theta3,
+                       Model=params$Model_Path)
+}
+
+Full_EMSE<-Full_Variance+Full_Bias*Full_Bias
+
+Full_Data<-as.matrix(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% Simulated_Data$All_Models$Real_Model])
+Parameter_Data<-as.matrix(Est_Parameter[,-c(1:3)])
+Parameter<-Parameter_Data[1,]
+
+Predict_Logistic_Regression<-function(Parameter)
+{
+  Estimates<-matrix(Parameter)
+  fitted_pi<-LaplacesDemon::invlogit(Full_Data%*%Estimates)
+  fitted_response<-ifelse(fitted_pi > 0.5,1,0)
+  return(1-mean(fitted_response != Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% "Y_Data"]))
+}
+
+Accuracy<-apply(Parameter_Data,1,Predict_Logistic_Regression)
+Accuracy_Data<-cbind.data.frame(Est_Parameter[,1:3],Accuracy)
+Accuracy_Data<-Accuracy_Data %>% 
+  group_by(Type,Model,Subsample_Size) %>%
+  summarize(Average_Accuracy=mean(Accuracy))
+
+remove(Temp_P,Temp_W,Temp_Info,Full_Data,Parameter_Data,Parameter,Accuracy)
+
+# Store the Results
+save(All_MSE,All_MSE_MLE,All_EMSE,All_Bias,All_VAR,All_Info,Accuracy_Data,
+     file = here("Non_Identical_r0","Summary",params$Model_Path,"Data","Efficiency",
+                 "No_Correlated_Covariate_OSMAC_MF.RData"))
+
+```
+
+## SMSE, EMSE, A-optimality, D-optimality, Bias Comparing Real Model with with Full Data Model
+
+```{r Final plots 1,fig.width=24,fig.height=8}
+Plot_List<-list()
+
+All_MSE %>%
+  #ungroup(Type,Model,Subsample_Size) %>%
+  ggplot(.,aes(x=Subsample_Size,y=MSE,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+facet_wrap(~Type,ncol = 1,scales = "free_y")+
+  ylab("SMSE")+ggtitle("SMSE Comparison")->Plot_List[[1]]
+
+All_MSE_MLE %>%
+  #ungroup(Type,Model,Subsample_Size) %>%
+  ggplot(.,aes(x=Subsample_Size,y=MSE,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+facet_wrap(~Type,ncol = 1,scales = "free_y")+
+  ylab("SMSE")+ggtitle("SMSE Comparison for MLE")->Plot_List[[2]]
+
+All_VAR %>%
+  ungroup(Type,Model,Subsample_Size) %>%
+  ggplot(.,aes(x=Subsample_Size,y=mean_Variance,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+facet_wrap(~Type,ncol = 1,scales = "free_y")+
+  ylab("Mean Variance")+ggtitle("Estimated Variance Comparison")->Plot_List[[3]]
+
+All_Info%>%
+  ungroup(Type,Model,Subsample_Size) %>%
+  ggplot(.,aes(x=Subsample_Size,y=mean_Info,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+facet_wrap(~Type,ncol = 1,scales = "free_y")+
+  ylab("Average Information")+ggtitle("Estimated Model Information Comparison")->Plot_List[[4]]
+
+All_Bias %>%
+  ungroup(Type,Model,Subsample_Size) %>%
+  ggplot(.,aes(x=Subsample_Size,y=mean_Bias,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+facet_wrap(~Type,ncol = 1,scales = "free_y")+
+  ylab("Average Bias")+ggtitle("Estimated Bias Comparison")->Plot_List[[5]]
+
+All_EMSE %>%
+  ungroup(Type,Model,Subsample_Size) %>%
+  ggplot(.,aes(x=Subsample_Size,y=EMSE,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+facet_wrap(~Type,ncol = 1,scales = "free_y")+
+  ylab("EMSE")+ggtitle("EMSE Comparison")->Plot_List[[6]]
+
+Accuracy_Data %>% 
+  ggplot(.,aes(x=Subsample_Size,y=Average_Accuracy,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+facet_wrap(~Type,ncol = 1,scales = "free_y")+
+  ylab("Average Accuracy")+ggtitle("Average Accuracy")->Plot_List[[7]]
+
+ggarrange(plotlist = Plot_List,nrow = 1,common.legend = TRUE)
+
+```

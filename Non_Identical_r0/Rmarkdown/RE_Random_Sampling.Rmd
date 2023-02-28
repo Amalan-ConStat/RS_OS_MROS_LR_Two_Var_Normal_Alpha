@@ -1,0 +1,484 @@
+---
+params:
+  Model_Path:
+title: "Rare Event Random_Sampling; Model: `r params$Model_Path`;"
+author: "M.Amalan"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,fig.height = 9,fig.width = 9,message = FALSE,warning = FALSE)
+library(here)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(LaplacesDemon)
+library(linguisticsdown)
+library(gganimate)
+library(viridis)
+library(Zelig)
+library(compiler)
+
+# Cordeiro Error----
+Cordeiro<-function(XData,With_bias)
+{
+  p <- as.vector(invlogit(XData%*%as.vector(With_bias)))
+  W <- diag(p*(1-p))
+  inverse_term <- solve(t(XData)%*%W%*%XData)
+  
+  Term1 <- inverse_term%*%t(XData)%*%W
+  Term2 <- diag(diag(XData%*%(inverse_term)%*%t(XData))) %*% as.matrix(p-0.5)
+  
+  bias <- as.vector(Term1%*%Term2)
+  return(bias)
+}  
+
+Cordeiro<-cmpfun(Cordeiro)
+
+FullDataPath<-here("Identical_r0","Generate_Big_Data",params$Model_Path,"No_Correlated_Covariate.RData")
+load(here(FullDataPath))
+Full_model<-glm(Y_Data~.-1,data = as.data.frame(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in%
+                                                                    c("Y_Data",Simulated_Data$All_Models$Real_Model)]),family = binomial)
+Real_Vline<-data.frame("Theta"=c(paste0("Theta",0:length(Simulated_Data$Theta[-1]))),"Values"=Simulated_Data$Theta)
+Estimated_Vline<-data.frame("Theta"=c(paste0("Theta",0:length(Simulated_Data$Theta[-1]))),"Values"=Full_model$coefficients)
+Bias_Vline<-data.frame("Theta"=c(paste0("Theta",0:length(Simulated_Data$Theta[-1]))),"Values"=0)
+```
+
+# Rare Event Random Sampling; Response Model : `r params$Model_Path` 
+
+# Real Model Data
+
+```{r Load Data RM}
+Path<-here("Non_Identical_r0","Outputs",params$Model_Path,"RE_Random_Sampling","Real_Model/")
+load(here(Path,"RE_Random_Sample_output.RData"))
+
+Est_Parameter_RM<-as.data.frame(Est_Param_RE_RandomSample)
+colnames(Est_Parameter_RM)<-c("Subsample_Size",paste0("Theta",0:length(Simulated_Data$Theta[-1])))
+
+Utility_RM<-as.data.frame(Utility_RE_RandomSample) 
+colnames(Utility_RM)<-c("Subsample_Size",paste0(c("A","D"),"_optimality"))
+
+Est_Bias_RM<-as.data.frame(Bias_RE_RandomSample) 
+colnames(Est_Bias_RM)<-c("Subsample_Size",paste0("Theta",0:length(Simulated_Data$Theta[-1])))
+
+remove(Est_Param_RE_RandomSample,Utility_RE_RandomSample,Bias_RE_RandomSample#,SelectedData_RE_RandomSample
+       )
+```
+
+# Assumed Model Data
+
+```{r Load Data AM}
+Path<-here("Non_Identical_r0","Outputs",params$Model_Path,"RE_Random_Sampling","Assumed_Model/")
+
+for (j in 1:length(Simulated_Data$All_Models[-1])) 
+{
+  load(here(Path,paste0("RE_Random_Sample_output_",j,".RData")))
+  
+  eval(parse(text=paste0("Est_Parameter_AM_",j,"<-as.data.frame(Est_Param_RE_RandomSample)")))
+  eval(parse(text=paste0("Utility_AM_",j,"<-as.data.frame(Utility_RE_RandomSample)")))
+  eval(parse(text=paste0("Est_Bias_AM_",j,"<-as.data.frame(Bias_RE_RandomSample)")))
+  
+  eval(parse(text=paste0("colnames(Est_Parameter_AM_",j,")<-c('Subsample_Size',paste0('Theta',0:length(Simulated_Data$Theta[-1])))")))
+  eval(parse(text=paste0("colnames(Utility_AM_",j,")<-c('Subsample_Size',paste0(c('A','D'),'_optimality'))")))
+  eval(parse(text=paste0("colnames(Est_Bias_AM_",j,")<-c('Subsample_Size',paste0('Theta',0:length(Simulated_Data$Theta[-1])))")))
+}
+
+remove(Est_Param_RE_RandomSample,Utility_RE_RandomSample,Bias_RE_RandomSample#,SelectedData_RE_RandomSample
+       )
+```
+
+```{r Combine Datasets}
+# Combine datasets
+Est_Parameter<-rbind(data.frame("Model"="Real Model",Est_Parameter_RM),
+                     data.frame("Model"="Assumed Model 1",Est_Parameter_AM_1),
+                     data.frame("Model"="Assumed Model 2",Est_Parameter_AM_2),
+                     data.frame("Model"="Assumed Model 3",Est_Parameter_AM_3),
+                     data.frame("Model"="Assumed Model 4",Est_Parameter_AM_4),
+                     data.frame("Model"="Assumed Model 5",Est_Parameter_AM_5),
+                     data.frame("Model"="Assumed Model 6",Est_Parameter_AM_6),
+                     data.frame("Model"="Assumed Model 7",Est_Parameter_AM_7),
+                     data.frame("Model"="Assumed Model 8",Est_Parameter_AM_8),
+                     data.frame("Model"="Assumed Model 9",Est_Parameter_AM_9),
+                     data.frame("Model"="Assumed Model 10",Est_Parameter_AM_10),
+                     data.frame("Model"="Assumed Model 11",Est_Parameter_AM_11),
+                     data.frame("Model"="Assumed Model 12",Est_Parameter_AM_12),
+                     data.frame("Model"="Assumed Model 13",Est_Parameter_AM_13),
+                     data.frame("Model"="Assumed Model 14",Est_Parameter_AM_14),
+                     data.frame("Model"="Assumed Model 15",Est_Parameter_AM_15))
+
+Est_Bias<-rbind(data.frame("Model"="Real Model",Est_Bias_RM),
+                data.frame("Model"="Assumed Model 1",Est_Bias_AM_1),
+                data.frame("Model"="Assumed Model 2",Est_Bias_AM_2),
+                data.frame("Model"="Assumed Model 3",Est_Bias_AM_3),
+                data.frame("Model"="Assumed Model 4",Est_Bias_AM_4),
+                data.frame("Model"="Assumed Model 5",Est_Bias_AM_5),
+                data.frame("Model"="Assumed Model 6",Est_Bias_AM_6),
+                data.frame("Model"="Assumed Model 7",Est_Bias_AM_7),
+                data.frame("Model"="Assumed Model 8",Est_Bias_AM_8),
+                data.frame("Model"="Assumed Model 9",Est_Bias_AM_9),
+                data.frame("Model"="Assumed Model 10",Est_Bias_AM_10),
+                data.frame("Model"="Assumed Model 11",Est_Bias_AM_11),
+                data.frame("Model"="Assumed Model 12",Est_Bias_AM_12),
+                data.frame("Model"="Assumed Model 13",Est_Bias_AM_13),
+                data.frame("Model"="Assumed Model 14",Est_Bias_AM_14),
+                data.frame("Model"="Assumed Model 15",Est_Bias_AM_15))
+
+Est_Utility<-rbind(data.frame("Model"="Real Model",Utility_RM),
+                   data.frame("Model"="Assumed Model 1",Utility_AM_1),
+                   data.frame("Model"="Assumed Model 2",Utility_AM_2),
+                   data.frame("Model"="Assumed Model 3",Utility_AM_3),
+                   data.frame("Model"="Assumed Model 4",Utility_AM_4),
+                   data.frame("Model"="Assumed Model 5",Utility_AM_5),
+                   data.frame("Model"="Assumed Model 6",Utility_AM_6),
+                   data.frame("Model"="Assumed Model 7",Utility_AM_7),
+                   data.frame("Model"="Assumed Model 8",Utility_AM_8),
+                   data.frame("Model"="Assumed Model 9",Utility_AM_9),
+                   data.frame("Model"="Assumed Model 10",Utility_AM_10),
+                   data.frame("Model"="Assumed Model 11",Utility_AM_11),
+                   data.frame("Model"="Assumed Model 12",Utility_AM_12),
+                   data.frame("Model"="Assumed Model 13",Utility_AM_13),
+                   data.frame("Model"="Assumed Model 14",Utility_AM_14),
+                   data.frame("Model"="Assumed Model 15",Utility_AM_15))
+
+remove(Est_Bias_AM_1,Est_Bias_AM_2,Est_Bias_AM_3, Est_Bias_RM,
+       Est_Bias_AM_4,Est_Bias_AM_5,Est_Bias_AM_6,
+       Est_Bias_AM_7,Est_Bias_AM_8,Est_Bias_AM_9,
+       Est_Bias_AM_10,Est_Bias_AM_11,Est_Bias_AM_12,
+       Est_Bias_AM_13,Est_Bias_AM_14,Est_Bias_AM_15,
+       Est_Parameter_AM_1,Est_Parameter_AM_2,Est_Parameter_AM_3, Est_Parameter_RM,
+       Est_Parameter_AM_4,Est_Parameter_AM_5,Est_Parameter_AM_6,
+       Est_Parameter_AM_7,Est_Parameter_AM_8,Est_Parameter_AM_9,
+       Est_Parameter_AM_10,Est_Parameter_AM_11,Est_Parameter_AM_12,
+       Est_Parameter_AM_13,Est_Parameter_AM_14,Est_Parameter_AM_15,
+       Utility_AM_1,Utility_AM_2,Utility_AM_3, Utility_RM,
+       Utility_AM_4,Utility_AM_5,Utility_AM_6,
+       Utility_AM_7,Utility_AM_8,Utility_AM_9,
+       Utility_AM_10,Utility_AM_11,Utility_AM_12,
+       Utility_AM_13,Utility_AM_14,Utility_AM_15)
+```
+
+# Comparison for Efficiency
+
+```{r Comparison of Summary Data}
+Final_MSE<-function(Real,Estimated_1,Estimated_2,Estimated_3,Estimated_4,Model)
+{
+  For_Theta0<-sum((Real[1]-Estimated_1)^2,na.rm = TRUE)
+  For_Theta1<-sum((Real[2]-Estimated_2)^2,na.rm = TRUE)
+  For_Theta2<-sum((Real[3]-Estimated_3)^2,na.rm = TRUE)
+  
+  if(Model=="Model_1")
+  {
+    return((For_Theta0+For_Theta1+For_Theta2)/length(Estimated_1))
+  }  
+  if(Model=="Model_2")
+  {
+    For_Theta3<-sum((Real[4]-Estimated_4)^2,na.rm = TRUE)
+    return((For_Theta0+For_Theta1+For_Theta2+For_Theta3)/length(Estimated_1))
+  }
+}
+      
+# Summarise A- optimality
+Est_Utility %>%
+  dplyr::select(Model,Subsample_Size,A_optimality) %>%
+  group_by(Model,Subsample_Size) %>%
+  mutate(mean_Variance=mean(A_optimality))%>%
+  distinct(mean_Variance) %>% 
+  forestmangr::round_df(8)->All_VAR  
+
+# Summarise D- optimality
+Est_Utility %>%
+  dplyr::select(Model,Subsample_Size,D_optimality) %>%
+  group_by(Model,Subsample_Size) %>%
+  mutate(mean_Info=mean(D_optimality))%>%
+  distinct(mean_Info) %>% 
+  forestmangr::round_df(8)->All_Info  
+
+
+if(params$Model_Path=="Model_1")
+{
+  # Summarize SMSE
+  Est_Parameter %>%
+        dplyr::select(Model,Subsample_Size,Theta0,Theta1,Theta2) %>%
+        group_by(Model,Subsample_Size) %>%
+        mutate( MSE=Final_MSE(Real = Real_Vline$Values,
+                              Estimated_1=Theta0, 
+                              Estimated_2=Theta1,
+                              Estimated_3=Theta2,
+                              Model = params$Model_Path ))%>%
+        distinct(MSE) %>% 
+        forestmangr::round_df(8)->All_MSE
+
+  # Summarize SMSE MLE
+  Est_Parameter %>%
+        dplyr::select(Model,Subsample_Size,Theta0,Theta1,Theta2) %>%
+        group_by(Model,Subsample_Size) %>%
+        mutate( MSE=Final_MSE(Real = Estimated_Vline$Values,
+                              Estimated_1=Theta0, 
+                              Estimated_2=Theta1,
+                              Estimated_3=Theta2,
+                              Model = params$Model_Path ))%>%
+        distinct(MSE) %>% 
+        forestmangr::round_df(8)->All_MSE_MLE
+  
+  # Summarise Bias
+  Est_Bias %>%
+    dplyr::select(Model,Subsample_Size,Theta0,Theta1,Theta2) %>%
+    group_by(Model,Subsample_Size) %>%
+    mutate(mean_Bias=mean(sqrt(Theta0*Theta0 + Theta1*Theta1 + Theta2*Theta2)) )%>%
+    distinct(mean_Bias) %>% 
+    forestmangr::round_df(8)->All_Bias
+  
+  # Summarise Bias = sqrt(Bias^2)
+  Est_Bias %>%
+    dplyr::select(Model,Subsample_Size,Theta0,Theta1,Theta2) %>%
+    group_by(Model,Subsample_Size) %>%
+    mutate(mean_Bias=mean(Theta0*Theta0 + Theta1*Theta1 + Theta2*Theta2) )%>%
+    distinct(mean_Bias) %>% 
+    forestmangr::round_df(4)->All_Bias_squared
+}
+
+if(params$Model_Path=="Model_2")
+{
+  # Summarize SMSE
+  Est_Parameter %>%
+        dplyr::select(Model,Subsample_Size,Theta0,Theta1,Theta2,Theta3) %>%
+        group_by(Model,Subsample_Size) %>%
+        mutate( MSE=Final_MSE(Real = Real_Vline$Values,
+                              Estimated_1=Theta0, 
+                              Estimated_2=Theta1,
+                              Estimated_3=Theta2,
+                              Estimated_4=Theta3,
+                              Model = params$Model_Path ))%>%
+        distinct(MSE) %>% 
+        forestmangr::round_df(8)->All_MSE
+
+  # Summarize SMSE MLE
+  Est_Parameter %>%
+        dplyr::select(Model,Subsample_Size,Theta0,Theta1,Theta2,Theta3) %>%
+        group_by(Model,Subsample_Size) %>%
+        mutate( MSE=Final_MSE(Real = Estimated_Vline$Values,
+                              Estimated_1=Theta0, 
+                              Estimated_2=Theta1,
+                              Estimated_3=Theta2,
+                              Estimated_4=Theta3,
+                              Model = params$Model_Path ))%>%
+        distinct(MSE) %>% 
+        forestmangr::round_df(8)->All_MSE_MLE
+  
+  # Summarise Bias
+  Est_Bias %>%
+    dplyr::select(Model,Subsample_Size,Theta0,Theta1,Theta2,Theta3) %>%
+    group_by(Model,Subsample_Size) %>%
+    mutate(mean_Bias=mean(sqrt(Theta0*Theta0 + Theta1*Theta1 + 
+                                 Theta2*Theta2 + Theta3*Theta3)) )%>%
+    distinct(mean_Bias) %>% 
+    forestmangr::round_df(8)->All_Bias
+  
+  # Summarise Bias = sqrt(Bias^2)
+  Est_Bias %>%
+    dplyr::select(Model,Subsample_Size,Theta0,Theta1,Theta2,Theta3) %>%
+    group_by(Model,Subsample_Size) %>%
+    mutate(mean_Bias=mean(Theta0*Theta0 + Theta1*Theta1 + 
+                            Theta2*Theta2 + Theta3*Theta3 ) )%>%
+    distinct(mean_Bias) %>% 
+    forestmangr::round_df(4)->All_Bias_squared
+}
+
+# Summarise EMSE
+inner_join(All_VAR,All_Bias_squared,by=c("Model","Subsample_Size")) %>%
+  mutate(EMSE=mean_Variance+mean_Bias) %>%
+  select(Model,Subsample_Size,EMSE)->All_EMSE
+colnames(All_EMSE)<-c("Model","Subsample_Size","EMSE")
+
+# Full Data model Estimates
+Full_Est_Parameter<-as.data.frame(t(Estimated_Vline$Values))
+Full_Est_Bias<-as.data.frame(t(Cordeiro(XData = Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% 
+                                                                          Simulated_Data$All_Models$Real_Model ] ,
+                                      With_bias = as.matrix(Full_Est_Parameter))))
+colnames(Full_Est_Parameter)<-colnames(Full_Est_Bias)<-c(paste0("Theta",0:length(Simulated_Data$Basic$Theta[-1])))
+
+Full_Bias<-sqrt(sum(Full_Est_Bias^2))
+Temp_P<-invlogit(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% Simulated_Data$All_Models$Real_Model]%*%
+                   t(as.matrix(Full_Est_Parameter)))
+Temp_W<-diag(as.vector(Temp_P*(1-Temp_P)))
+Temp_Info<-t(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% Simulated_Data$All_Models$Real_Model]) %*% 
+  Temp_W %*% Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% Simulated_Data$All_Models$Real_Model]
+Full_Variance<-tr(solve(Temp_Info))
+Full_Information<-det(Temp_Info)
+  
+if(params$Model_Path=="Model_1")
+{
+  Full_SMSE<-Final_MSE(Real=Real_Vline$Values,
+                Estimated_1 = Full_Est_Parameter$Theta0,
+                Estimated_2 = Full_Est_Parameter$Theta1,
+                Estimated_3 = Full_Est_Parameter$Theta2,
+                Model=params$Model_Path)
+}
+
+if(params$Model_Path=="Model_2")
+{
+  Full_SMSE<-Final_MSE(Real=Real_Vline$Values,
+                Estimated_1 = Full_Est_Parameter$Theta0,
+                Estimated_2 = Full_Est_Parameter$Theta1,
+                Estimated_3 = Full_Est_Parameter$Theta2,
+                Estimated_4 = Full_Est_Parameter$Theta3,
+                Model=params$Model_Path)
+}
+
+Full_EMSE<-Full_Variance+Full_Bias*Full_Bias
+
+Full_Data<-as.matrix(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% Simulated_Data$All_Models$Real_Model])
+Parameter_Data<-as.matrix(Est_Parameter[,-c(1:2)])
+Parameter<-Parameter_Data[1,]
+
+Predict_Logistic_Regression<-function(Parameter)
+{
+  Estimates<-matrix(Parameter)
+  fitted_pi<-LaplacesDemon::invlogit(Full_Data%*%Estimates)
+  fitted_response<-ifelse(fitted_pi > 0.5,1,0)
+  return(1-mean(fitted_response != Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% "Y_Data"]))
+}
+
+Accuracy<-apply(Parameter_Data,1,Predict_Logistic_Regression)
+
+Accuracy_Data<-cbind.data.frame(Est_Parameter[,1:2],Accuracy)
+Accuracy_Data<-Accuracy_Data %>% 
+  group_by(Model,Subsample_Size) %>%
+  summarize(Average_Accuracy=mean(Accuracy))
+
+remove(Temp_P,Temp_W,Temp_Info,Full_Data,Parameter_Data,Parameter,Accuracy)
+
+# Store the Results
+save(All_MSE,All_MSE_MLE,All_EMSE,All_Bias,All_VAR,All_Info,Accuracy_Data,
+     file = here("Non_Identical_r0","Summary",params$Model_Path,"Data","Efficiency",
+                 "No_Correlated_Covariate_RE_RS.RData"))
+```
+
+## SMSE, EMSE, A-optimality, D-optimality, Bias Comparing Real Model and Assumed Models
+
+```{r Final plots 1,fig.width=31,fig.height=7}
+Plot_list<-list()
+
+All_MSE %>%
+  ungroup(Model,Subsample_Size) %>%
+ggplot(.,aes(x=Subsample_Size,y=MSE,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("SMSE")+ggtitle("SMSE Comparison")->Plot_list[[1]]
+  
+All_MSE_MLE %>%
+  ungroup(Model,Subsample_Size) %>%
+ggplot(.,aes(x=Subsample_Size,y=MSE,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("SMSE")+ggtitle("SMSE Comparison for MLE")->Plot_list[[2]]
+
+All_VAR %>%
+  ungroup(Model,Subsample_Size) %>%
+ggplot(.,aes(x=Subsample_Size,y=mean_Variance,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Mean Variance")+ggtitle("Estimated Variance Comparison")->Plot_list[[3]]
+  
+All_Info %>%
+  ungroup(Model,Subsample_Size) %>%
+ggplot(.,aes(x=Subsample_Size,y=mean_Info,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Average Information")+ggtitle("Estimated Model Information Comparison")->Plot_list[[4]]
+
+All_Bias %>%
+  ungroup(Model,Subsample_Size) %>%
+ggplot(.,aes(x=Subsample_Size,y=mean_Bias,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Average Bias")+ggtitle("Estimated Bias Comparison")->Plot_list[[5]]
+
+All_EMSE %>%
+  ungroup(Model,Subsample_Size) %>%
+ggplot(.,aes(x=Subsample_Size,y=EMSE,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("EMSE")+ggtitle("EMSE Comparison")->Plot_list[[6]]
+
+Accuracy_Data %>% 
+  ggplot(.,aes(x=Subsample_Size,y=Average_Accuracy,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Average Accuracy")+ggtitle("Average Accuracy")->Plot_list[[7]]
+
+ggarrange(plotlist = Plot_list,nrow = 1,ncol = 7,common.legend = TRUE)
+```
+
+## SMSE, EMSE, A-optimality, D-optimality, Bias Comparing Real Model and Assumed Models with Full Data Model
+
+```{r Final plots 2,fig.width=31,fig.height=7}
+Plot_list<-list()
+
+All_MSE %>%
+  ungroup(Model,Subsample_Size) %>%
+  mutate(Efficiency=MSE/Full_SMSE) %>%
+ggplot(.,aes(x=Subsample_Size,y=Efficiency,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Relative Efficiency")+ggtitle("SMSE Efficiency")->Plot_list[[1]]
+  
+All_MSE_MLE %>%
+  ungroup(Model,Subsample_Size) %>%
+  mutate(Efficiency=MSE/Full_SMSE) %>%
+ggplot(.,aes(x=Subsample_Size,y=Efficiency,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Relative Efficiency")+ggtitle("SMSE Efficiency for MLE")->Plot_list[[2]]
+
+All_VAR %>%
+  ungroup(Model,Subsample_Size) %>%
+  mutate(Efficiency=mean_Variance/Full_Variance) %>%
+ggplot(.,aes(x=Subsample_Size,y=Efficiency,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Relative Efficiency")+ggtitle("Estimated Variance Efficiency")->Plot_list[[3]]
+  
+All_Info %>%
+  ungroup(Model,Subsample_Size) %>%
+  mutate(Efficiency=mean_Info/Full_Information) %>%
+ggplot(.,aes(x=Subsample_Size,y=Efficiency,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Relative Efficiency")+ggtitle("Estimated Model Information Efficiency")->Plot_list[[4]]
+
+All_Bias %>%
+  ungroup(Model,Subsample_Size) %>%
+  mutate(Efficiency=mean_Bias/Full_Bias) %>%
+ggplot(.,aes(x=Subsample_Size,y=Efficiency,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Relative Efficiency")+ggtitle("Estimated Bias Efficiency")->Plot_list[[5]]
+
+All_EMSE %>%
+  ungroup(Model,Subsample_Size) %>%
+  mutate(Efficiency=EMSE/Full_EMSE) %>%
+ggplot(.,aes(x=Subsample_Size,y=Efficiency,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Relative Efficiency")+ggtitle("EMSE Efficiency")->Plot_list[[6]]
+
+Full_Data<-as.matrix(Simulated_Data$All_Data[,colnames(Simulated_Data$All_Data) %in% 
+                                               c("Y_Data",Simulated_Data$All_Models$Real_Model) ] )
+Parameter_Data<-as.matrix(Est_Parameter[,-c(1:3)])
+Parameter<-Parameter_Data[1,]
+
+fitted_pi<-as.vector(predict.glm(Full_model,newdata = as.data.frame(Full_Data[,-1])))
+fitted_response<-ifelse(fitted_pi > 0.5,1,0)
+Full_Accuracy<-1-mean(fitted_response != Full_Data[,1])
+
+Accuracy_Data %>% 
+  mutate(Relative_Accuracy=Average_Accuracy/Full_Accuracy) %>%
+  ggplot(.,aes(x=Subsample_Size,y=Relative_Accuracy,color=Model))+geom_point()+
+  geom_line()+scale_colour_viridis_d()+
+  theme_light()+xlab("Sub sample size")+
+  ylab("Relative Average Accuracy")+ggtitle("Average Accuracy")->Plot_list[[7]]
+
+ggarrange(plotlist = Plot_list,nrow = 1,ncol = 7,common.legend = TRUE)
+```

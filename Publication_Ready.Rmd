@@ -1,0 +1,718 @@
+---
+params:
+  Model_Path:
+title: "Publication Ready"
+author: "Amalan"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,fig.width = 15,fig.height = 20,message = FALSE,warning = FALSE)
+library(here)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(LaplacesDemon)
+library(xtable)
+library(flextable)
+library(grid)
+library(cowplot)
+library(linguisticsdown)
+library(ggpubr)
+```
+
+# Using Normal Distribution for Data
+
+## Model : `r params$Model_Path` 
+
+```{r load Identical Data}
+Old_Labels<-c("Real Model",paste0("Assumed Model ",1:15))
+New_Labels<-c("RM",paste0("AM ",1:15))
+
+# Random Sampling
+load(here("Non_Identical_r0","Summary",params$Model_Path,"Data","Efficiency",
+          "No_Correlated_Covariate_RS.RData"))
+
+for (i in 1:length(Old_Labels)) 
+{
+  All_Bias$Model[All_Bias$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_EMSE$Model[All_EMSE$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_Info$Model[All_Info$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_MSE$Model[All_MSE$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_MSE_MLE$Model[All_MSE_MLE$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_VAR$Model[All_VAR$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  Accuracy_Data$Model[Accuracy_Data$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+}
+
+RS_Bias<-All_Bias 
+RS_EMSE<-All_EMSE
+RS_Info<-All_Info
+RS_MSE<-All_MSE
+RS_MSE_MLE<-All_MSE_MLE
+RS_VAR<-All_VAR
+RS_ACC<-Accuracy_Data
+
+remove(All_Bias,All_EMSE,All_MSE,All_Info,All_VAR,Accuracy_Data)
+
+# OSMAC
+load(here("Identical_r0","Summary",params$Model_Path,"Data","Efficiency",
+          "No_Correlated_Covariate_OSMAC.RData"))
+
+Old_Labels<-c("Real",paste0("Assumed Old ",1:15),"Model Free Equal","Model Free UnEqual")
+New_Labels<-c("RM",paste0("AM ",1:15),"MF Equal", "MF UnEqual")
+
+## mMSE
+for (i in 1:length(Old_Labels)) 
+{
+  All_Bias$Model[All_Bias$Model==Old_Labels[i] & All_Bias$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_EMSE$Model[All_EMSE$Model==Old_Labels[i] & All_EMSE$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_Info$Model[All_Info$Model==Old_Labels[i] & All_Info$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_MSE$Model[All_MSE$Model==Old_Labels[i] & All_MSE$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_MSE_MLE$Model[All_MSE_MLE$Model==Old_Labels[i] & All_MSE_MLE$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_VAR$Model[All_VAR$Model==Old_Labels[i] & All_VAR$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  Accuracy_Data$Model[Accuracy_Data$Model==Old_Labels[i] & Accuracy_Data$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+}
+
+OSMAC_mMSE_Bias<-All_Bias[All_Bias$Type == "mMSE",] 
+OSMAC_mMSE_EMSE<-All_EMSE[All_EMSE$Type == "mMSE",]
+OSMAC_mMSE_Info<-All_Info[All_Info$Type == "mMSE",]
+OSMAC_mMSE_MSE<-All_MSE[All_MSE$Type == "mMSE",]
+OSMAC_mMSE_MSE_MLE<-All_MSE_MLE[All_MSE_MLE$Type == "mMSE",]
+OSMAC_mMSE_VAR<-All_VAR[All_VAR$Type == "mMSE",]
+OSMAC_mMSE_ACC<-Accuracy_Data[Accuracy_Data$Type == "mMSE",]
+
+## mVc
+for (i in 1:length(Old_Labels)) 
+{
+  All_Bias$Model[All_Bias$Model==Old_Labels[i] & All_Bias$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_EMSE$Model[All_EMSE$Model==Old_Labels[i] & All_EMSE$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_Info$Model[All_Info$Model==Old_Labels[i] & All_Info$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_MSE$Model[All_MSE$Model==Old_Labels[i] & All_MSE$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_MSE_MLE$Model[All_MSE_MLE$Model==Old_Labels[i] & All_MSE_MLE$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_VAR$Model[All_VAR$Model==Old_Labels[i] & All_VAR$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  Accuracy_Data$Model[Accuracy_Data$Model==Old_Labels[i] & Accuracy_Data$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+}
+
+OSMAC_mVc_Bias<-All_Bias[All_Bias$Type == "mVc",] 
+OSMAC_mVc_EMSE<-All_EMSE[All_EMSE$Type == "mVc",]
+OSMAC_mVc_Info<-All_Info[All_Info$Type == "mVc",]
+OSMAC_mVc_MSE<-All_MSE[All_MSE$Type == "mVc",]
+OSMAC_mVc_MSE_MLE<-All_MSE_MLE[All_MSE_MLE$Type == "mVc",]
+OSMAC_mVc_VAR<-All_VAR[All_VAR$Type == "mVc",]
+OSMAC_mVc_ACC<-Accuracy_Data[Accuracy_Data$Type == "mVc",]
+
+remove(All_Bias,All_EMSE,All_MSE,All_Info,All_VAR,Accuracy_Data)
+
+# All elements
+All_Bias<-rbind(RS_Bias,
+                OSMAC_mMSE_Bias[,!(colnames(OSMAC_mMSE_Bias) %in% "Type")],
+                OSMAC_mVc_Bias[,!(colnames(OSMAC_mVc_Bias) %in% "Type")])
+All_EMSE<-rbind(RS_EMSE,
+                OSMAC_mMSE_EMSE[,!(colnames(OSMAC_mMSE_EMSE) %in% "Type")],
+                OSMAC_mVc_EMSE[,!(colnames(OSMAC_mVc_EMSE) %in% "Type")])
+All_MSE<-rbind(RS_MSE,
+                OSMAC_mMSE_MSE[,!(colnames(OSMAC_mMSE_MSE) %in% "Type")],
+                OSMAC_mVc_MSE[,!(colnames(OSMAC_mVc_MSE) %in% "Type")])
+All_MSE_MLE<-rbind(RS_MSE_MLE,
+                   OSMAC_mMSE_MSE_MLE[,!(colnames(OSMAC_mMSE_MSE_MLE) %in% "Type")],
+                   OSMAC_mVc_MSE_MLE[,!(colnames(OSMAC_mVc_MSE_MLE) %in% "Type")])
+All_Info<-rbind(RS_Info,
+                OSMAC_mMSE_Info[,!(colnames(OSMAC_mMSE_Info) %in% "Type")],
+                OSMAC_mVc_Info[,!(colnames(OSMAC_mVc_Info) %in% "Type")])
+All_VAR<-rbind(RS_VAR,
+                OSMAC_mMSE_VAR[,!(colnames(OSMAC_mMSE_VAR) %in% "Type")],
+                OSMAC_mVc_VAR[,!(colnames(OSMAC_mVc_VAR) %in% "Type")])
+All_ACC<-rbind(RS_ACC,
+                OSMAC_mMSE_ACC[,!(colnames(OSMAC_mMSE_ACC) %in% "Type")],
+                OSMAC_mVc_ACC[,!(colnames(OSMAC_mVc_ACC) %in% "Type")])
+
+All_Objects<-ls()
+remove(list = All_Objects[startsWith(All_Objects,"RS")])
+remove(list = All_Objects[startsWith(All_Objects,"OSMAC")])
+
+colnames(All_Bias)[3]<-"Estimated Values"
+colnames(All_EMSE)[3]<-"Estimated Values"
+colnames(All_Info)[3]<-"Estimated Values"
+colnames(All_MSE)[3]<-"Estimated Values"
+colnames(All_MSE_MLE)[3]<-"Estimated Values"
+colnames(All_VAR)[3]<-"Estimated Values"
+colnames(All_ACC)[3]<-"Estimated Values"
+
+Final_Data_Identical_r0<-rbind(cbind.data.frame(Metric="Bias",All_Bias),
+                               cbind.data.frame(Metric="EMSE",All_EMSE),
+                               cbind.data.frame(Metric="Model Information",All_Info),
+                               cbind.data.frame(Metric="MSE",All_MSE),
+                               cbind.data.frame(Metric="MSE_MLE",All_MSE_MLE),
+                               cbind.data.frame(Metric="Variance",All_VAR),
+                               cbind.data.frame(Metric="Accuracy",All_ACC))
+
+remove(All_Bias,All_EMSE,All_Info,All_MSE,All_VAR,All_ACC)
+```
+
+
+```{r load Non Identical Data}
+Old_Labels<-c("Real Model",paste0("Assumed Model ",1:15))
+New_Labels<-c("RM",paste0("AM ",1:15))
+
+# Random Sampling
+load(here("Non_Identical_r0","Summary",params$Model_Path,"Data","Efficiency",
+          "No_Correlated_Covariate_RS.RData"))
+
+for (i in 1:length(Old_Labels)) 
+{
+  All_Bias$Model[All_Bias$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_EMSE$Model[All_EMSE$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_Info$Model[All_Info$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_MSE$Model[All_MSE$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_MSE_MLE$Model[All_MSE_MLE$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  All_VAR$Model[All_VAR$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+  Accuracy_Data$Model[Accuracy_Data$Model==Old_Labels[i]] <-paste0("RS ",New_Labels[i])
+}
+
+RS_Bias<-All_Bias 
+RS_EMSE<-All_EMSE
+RS_Info<-All_Info
+RS_MSE<-All_MSE
+RS_MSE_MLE<-All_MSE_MLE
+RS_VAR<-All_VAR
+RS_ACC<-Accuracy_Data
+
+remove(All_Bias,All_EMSE,All_MSE,All_Info,All_VAR,Accuracy_Data)
+
+# OSMAC
+load(here("Non_Identical_r0","Summary",params$Model_Path,"Data","Efficiency",
+          "No_Correlated_Covariate_OSMAC.RData"))
+
+## mMSE
+for (i in 1:length(Old_Labels)) 
+{
+  All_Bias$Model[All_Bias$Model==Old_Labels[i] & All_Bias$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_EMSE$Model[All_EMSE$Model==Old_Labels[i] & All_EMSE$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_Info$Model[All_Info$Model==Old_Labels[i] & All_Info$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_MSE$Model[All_MSE$Model==Old_Labels[i] & All_MSE$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_MSE_MLE$Model[All_MSE_MLE$Model==Old_Labels[i] & All_MSE_MLE$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  All_VAR$Model[All_VAR$Model==Old_Labels[i] & All_VAR$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+  Accuracy_Data$Model[Accuracy_Data$Model==Old_Labels[i] & Accuracy_Data$Type == "mMSE"] <-paste0("OSMAC mMSE ",New_Labels[i])
+}
+
+OSMAC_mMSE_Bias<-All_Bias[All_Bias$Type == "mMSE",] 
+OSMAC_mMSE_EMSE<-All_EMSE[All_EMSE$Type == "mMSE",]
+OSMAC_mMSE_Info<-All_Info[All_Info$Type == "mMSE",]
+OSMAC_mMSE_MSE<-All_MSE[All_MSE$Type == "mMSE",]
+OSMAC_mMSE_MSE_MLE<-All_MSE_MLE[All_MSE_MLE$Type == "mMSE",]
+OSMAC_mMSE_VAR<-All_VAR[All_VAR$Type == "mMSE",]
+OSMAC_mMSE_ACC<-Accuracy_Data[Accuracy_Data$Type == "mMSE",]
+
+## mVc
+for (i in 1:length(Old_Labels)) 
+{
+  All_Bias$Model[All_Bias$Model==Old_Labels[i] & All_Bias$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_EMSE$Model[All_EMSE$Model==Old_Labels[i] & All_EMSE$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_Info$Model[All_Info$Model==Old_Labels[i] & All_Info$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_MSE$Model[All_MSE$Model==Old_Labels[i] & All_MSE$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_MSE_MLE$Model[All_MSE_MLE$Model==Old_Labels[i] & All_MSE_MLE$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  All_VAR$Model[All_VAR$Model==Old_Labels[i] & All_VAR$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+  Accuracy_Data$Model[Accuracy_Data$Model==Old_Labels[i] & Accuracy_Data$Type == "mVc"] <-paste0("OSMAC mVc ",New_Labels[i])
+}
+
+OSMAC_mVc_Bias<-All_Bias[All_Bias$Type == "mVc",] 
+OSMAC_mVc_EMSE<-All_EMSE[All_EMSE$Type == "mVc",]
+OSMAC_mVc_Info<-All_Info[All_Info$Type == "mVc",]
+OSMAC_mVc_MSE<-All_MSE[All_MSE$Type == "mVc",]
+OSMAC_mVc_MSE_MLE<-All_MSE_MLE[All_MSE_MLE$Type == "mVc",]
+OSMAC_mVc_VAR<-All_VAR[All_VAR$Type == "mVc",]
+OSMAC_mVc_ACC<-Accuracy_Data[Accuracy_Data$Type == "mVc",]
+
+remove(All_Bias,All_EMSE,All_MSE,All_Info,All_VAR,Accuracy_Data)
+
+# OSMAC Model Free
+load(here("Non_Identical_r0","Summary",params$Model_Path,"Data","Efficiency",
+          "No_Correlated_Covariate_OSMAC_MF.RData"))
+
+## mMSE
+All_Bias$Model[All_Bias$Type == "mMSE" & All_Bias$Model == "Model Free Equal"] <-paste0("OSMAC mMSE MF Equal")
+All_EMSE$Model[All_EMSE$Type == "mMSE"& All_EMSE$Model == "Model Free Equal"] <-paste0("OSMAC mMSE MF Equal")
+All_Info$Model[All_Info$Type == "mMSE"& All_Info$Model == "Model Free Equal"] <-paste0("OSMAC mMSE MF Equal")
+All_MSE$Model[All_MSE$Type == "mMSE"& All_MSE$Model == "Model Free Equal"] <-paste0("OSMAC mMSE MF Equal")
+All_MSE_MLE$Model[All_MSE_MLE$Type == "mMSE"& All_MSE_MLE$Model == "Model Free Equal"] <-paste0("OSMAC mMSE MF Equal")
+All_VAR$Model[All_VAR$Type == "mMSE"& All_VAR$Model == "Model Free Equal"] <-paste0("OSMAC mMSE MF Equal")
+Accuracy_Data$Model[Accuracy_Data$Type == "mMSE"& Accuracy_Data$Model == "Model Free Equal"] <-paste0("OSMAC mMSE MF Equal")
+
+All_Bias$Model[All_Bias$Type == "mMSE" & All_Bias$Model == "Model Free UnEqual"] <-paste0("OSMAC mMSE MF UnEqual")
+All_EMSE$Model[All_EMSE$Type == "mMSE"& All_EMSE$Model == "Model Free UnEqual"] <-paste0("OSMAC mMSE MF UnEqual")
+All_Info$Model[All_Info$Type == "mMSE"& All_Info$Model == "Model Free UnEqual"] <-paste0("OSMAC mMSE MF UnEqual")
+All_MSE$Model[All_MSE$Type == "mMSE"& All_MSE$Model == "Model Free UnEqual"] <-paste0("OSMAC mMSE MF UnEqual")
+All_MSE_MLE$Model[All_MSE_MLE$Type == "mMSE"& All_MSE_MLE$Model == "Model Free UnEqual"] <-paste0("OSMAC mMSE MF UnEqual")
+All_VAR$Model[All_VAR$Type == "mMSE"& All_VAR$Model == "Model Free UnEqual"] <-paste0("OSMAC mMSE MF UnEqual")
+Accuracy_Data$Model[Accuracy_Data$Type == "mMSE"& Accuracy_Data$Model == "Model Free UnEqual"] <-paste0("OSMAC mMSE MF UnEqual")
+
+## mVc
+All_Bias$Model[All_Bias$Type == "mVc" & All_Bias$Model == "Model Free Equal"] <-paste0("OSMAC mVc MF Equal")
+All_EMSE$Model[All_EMSE$Type == "mVc"& All_EMSE$Model == "Model Free Equal"] <-paste0("OSMAC mVc MF Equal")
+All_Info$Model[All_Info$Type == "mVc"& All_Info$Model == "Model Free Equal"] <-paste0("OSMAC mVc MF Equal")
+All_MSE$Model[All_MSE$Type == "mVc"& All_MSE$Model == "Model Free Equal"] <-paste0("OSMAC mVc MF Equal")
+All_MSE_MLE$Model[All_MSE_MLE$Type == "mVc"& All_MSE_MLE$Model == "Model Free Equal"] <-paste0("OSMAC mVc MF Equal")
+All_VAR$Model[All_VAR$Type == "mVc"& All_VAR$Model == "Model Free Equal"] <-paste0("OSMAC mVc MF Equal")
+Accuracy_Data$Model[Accuracy_Data$Type == "mVc"& Accuracy_Data$Model == "Model Free Equal"] <-paste0("OSMAC mVc MF Equal")
+
+All_Bias$Model[All_Bias$Type == "mVc" & All_Bias$Model == "Model Free UnEqual"] <-paste0("OSMAC mVc MF UnEqual")
+All_EMSE$Model[All_EMSE$Type == "mVc"& All_EMSE$Model == "Model Free UnEqual"] <-paste0("OSMAC mVc MF UnEqual")
+All_Info$Model[All_Info$Type == "mVc"& All_Info$Model == "Model Free UnEqual"] <-paste0("OSMAC mVc MF UnEqual")
+All_MSE$Model[All_MSE$Type == "mVc"& All_MSE$Model == "Model Free UnEqual"] <-paste0("OSMAC mVc MF UnEqual")
+All_MSE_MLE$Model[All_MSE_MLE$Type == "mVc"& All_MSE_MLE$Model == "Model Free UnEqual"] <-paste0("OSMAC mVc MF UnEqual")
+All_VAR$Model[All_VAR$Type == "mVc"& All_VAR$Model == "Model Free UnEqual"] <-paste0("OSMAC mVc MF UnEqual")
+Accuracy_Data$Model[Accuracy_Data$Type == "mVc"& Accuracy_Data$Model == "Model Free UnEqual"] <-paste0("OSMAC mVc MF UnEqual")
+
+# All elements
+All_Bias<-rbind(RS_Bias,
+                OSMAC_mMSE_Bias[,!(colnames(OSMAC_mMSE_Bias) %in% "Type")],
+                OSMAC_mVc_Bias[,!(colnames(OSMAC_mVc_Bias) %in% "Type")],
+                All_Bias[,!(colnames(All_Bias) %in% "Type")])
+All_EMSE<-rbind(RS_EMSE,
+                OSMAC_mMSE_EMSE[,!(colnames(OSMAC_mMSE_EMSE) %in% "Type")],
+                OSMAC_mVc_EMSE[,!(colnames(OSMAC_mVc_EMSE) %in% "Type")],
+                All_EMSE[,!(colnames(All_EMSE) %in% "Type")])
+All_MSE<-rbind(RS_MSE,
+               OSMAC_mMSE_MSE[,!(colnames(OSMAC_mMSE_MSE) %in% "Type")],
+               OSMAC_mVc_MSE[,!(colnames(OSMAC_mVc_MSE) %in% "Type")],
+               All_MSE[,!(colnames(All_MSE) %in% "Type")])
+All_MSE_MLE<-rbind(RS_MSE_MLE,
+                   OSMAC_mMSE_MSE_MLE[,!(colnames(OSMAC_mMSE_MSE_MLE) %in% "Type")],
+                   OSMAC_mVc_MSE_MLE[,!(colnames(OSMAC_mVc_MSE_MLE) %in% "Type")],
+                   All_MSE_MLE[,!(colnames(All_MSE_MLE) %in% "Type")])
+All_Info<-rbind(RS_Info,
+                OSMAC_mMSE_Info[,!(colnames(OSMAC_mMSE_Info) %in% "Type")],
+                OSMAC_mVc_Info[,!(colnames(OSMAC_mVc_Info) %in% "Type")],
+                All_Info[,!(colnames(All_Info) %in% "Type")])
+All_VAR<-rbind(RS_VAR,
+               OSMAC_mMSE_VAR[,!(colnames(OSMAC_mMSE_VAR) %in% "Type")],
+               OSMAC_mVc_VAR[,!(colnames(OSMAC_mVc_VAR) %in% "Type")],
+               All_VAR[,!(colnames(All_VAR) %in% "Type")])
+All_ACC<-rbind(RS_ACC,
+               OSMAC_mMSE_ACC[,!(colnames(OSMAC_mMSE_ACC) %in% "Type")],
+               OSMAC_mVc_ACC[,!(colnames(OSMAC_mVc_ACC) %in% "Type")],
+               Accuracy_Data[,!(colnames(Accuracy_Data) %in% "Type")])
+
+All_Objects<-ls()
+remove(list = All_Objects[startsWith(All_Objects,"OSMAC")])
+remove(list = All_Objects[startsWith(All_Objects,"RS")])
+remove(Accuracy_Data)
+
+colnames(All_Bias)[3]<-"Estimated Values"
+colnames(All_EMSE)[3]<-"Estimated Values"
+colnames(All_Info)[3]<-"Estimated Values"
+colnames(All_MSE)[3]<-"Estimated Values"
+colnames(All_MSE_MLE)[3]<-"Estimated Values"
+colnames(All_VAR)[3]<-"Estimated Values"
+colnames(All_ACC)[3]<-"Estimated Values"
+
+Final_Data_Non_Identical_r0<-rbind(cbind.data.frame(Metric="Bias",All_Bias),
+                                   cbind.data.frame(Metric="EMSE",All_EMSE),
+                                   cbind.data.frame(Metric="Model Information",All_Info),
+                                   cbind.data.frame(Metric="MSE",All_MSE),
+                                   cbind.data.frame(Metric="MSE_MLE",All_MSE_MLE),
+                                   cbind.data.frame(Metric="Variance",All_VAR),
+                                   cbind.data.frame(Metric="Accuracy",All_ACC))
+
+remove(All_Bias,All_EMSE,All_Info,All_MSE,All_VAR,All_ACC)
+
+Final_Data<-rbind(cbind(Data="Identical r0",Final_Data_Identical_r0),
+                  cbind(Data="Non Identical r0",Final_Data_Non_Identical_r0))
+```
+
+# Model Set 1
+
+```{r Identical r0 Plots Model Set 1}
+# mMSE models Colors
+Selected_mMSE<-c("OSMAC mMSE AM 1","OSMAC mMSE AM 15",
+                 "OSMAC mMSE MF Equal","OSMAC mMSE MF UnEqual",
+                 "OSMAC mMSE RM","RS RM")
+Colors_mMSE<-c("#E28490","#E28490", 
+               "#1DA117","#1DCC77",
+               "#FF0000","black")
+                      
+# mvc models
+Selected_mVc<-c("OSMAC mVc AM 1","OSMAC mVc AM 15",
+                "OSMAC mVc MF Equal","OSMAC mVc MF UnEqual",
+                "OSMAC mVc RM","RS RM")
+Colors_mVc<-c("#E28490","#E28490", 
+              "#1DA117","#1DCC77",
+              "#FF0000","black")
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "MSE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p1
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "MSE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p2
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "Model Information"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Estimated Model Information",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p3
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "Model Information"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Estimated Model Information",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p4
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "Accuracy"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Average Accuracy",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p5
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "Accuracy"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Average_Accuracy",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p6
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "MSE_MLE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE for MLE",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p7
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "MSE_MLE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE for MLE ",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p8
+
+ggarrange(p1,p2,p3,p4,nrow = 4)
+ggarrange(p5,p6,nrow = 2)
+ggarrange(p7,p8,nrow = 2)
+```
+
+# Model Set 2
+
+```{r Identical r0 Plots Model Set 2}
+if(params$Model_Path=="Model_1")
+{
+  # mMSE models Colors
+  Selected_mMSE<-c(paste0("OSMAC mMSE AM ",2:5),
+                   "OSMAC mMSE MF Equal","OSMAC mMSE MF UnEqual",
+                   "OSMAC mMSE RM","RS RM")
+  Colors_mMSE<-c("#E28490","#E28490","#E28490","#E28490", 
+                 "#1DA117","#1DCC77",
+                 "#FF0000","black")
+                          
+  # mvc models
+  Selected_mVc<-c(paste0("OSMAC mVc AM ",2:5),
+                  "OSMAC mVc MF Equal","OSMAC mVc MF UnEqual",
+                  "OSMAC mVc RM","RS RM")
+  Colors_mVc<-c("#E28490","#E28490","#E28490","#E28490", 
+                "#1DA117","#1DCC77",
+                "#FF0000","black")
+}  
+  
+if(params$Model_Path=="Model_2")
+{
+  # mMSE models Colors
+  Selected_mMSE<-c(paste0("OSMAC mMSE AM ",2:4),
+                   "OSMAC mMSE MF Equal","OSMAC mMSE MF UnEqual",
+                   "OSMAC mMSE RM","RS RM")
+  Colors_mMSE<-c("#E28490","#E28490","#E28490", 
+                 "#1DA117","#1DCC77",
+                 "#FF0000","black")
+                          
+  # mvc models
+  Selected_mVc<-c(paste0("OSMAC mVc AM ",2:4),
+                  "OSMAC mVc MF Equal","OSMAC mVc MF UnEqual",
+                  "OSMAC mVc RM","RS RM")
+  Colors_mVc<-c("#E28490","#E28490","#E28490",
+                "#1DA117","#1DCC77",
+                "#FF0000","black")
+}  
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "MSE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p1
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "MSE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p2
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "Model Information"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Estimated Model Information",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p3
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "Model Information"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Estimated Model Information",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p4
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "Accuracy"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Average Accuracy",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p5
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "Accuracy"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Average_Accuracy",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p6
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "MSE_MLE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE for MLE",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p7
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "MSE_MLE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE for MLE ",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p8
+
+ggarrange(p1,p2,p3,p4,nrow = 4)
+ggarrange(p5,p6,nrow = 2)
+ggarrange(p7,p8,nrow = 2)
+```
+
+# Model Set 3
+
+```{r Identical r0 Plots Model Set 3}
+if(params$Model_Path=="Model_1")
+{
+  # mMSE models Colors
+  Selected_mMSE<-c(paste0("OSMAC mMSE AM ",6:10),
+                   "OSMAC mMSE MF Equal","OSMAC mMSE MF UnEqual",
+                   "OSMAC mMSE RM","RS RM")
+  Colors_mMSE<-c("#E28490","#E28490","#E28490","#E28490","#E28490", 
+                 "#1DA117","#1DCC77",
+                 "#FF0000","black")
+                          
+  # mvc models
+  Selected_mVc<-c(paste0("OSMAC mVc AM ",6:10),
+                  "OSMAC mVc MF Equal","OSMAC mVc MF UnEqual",
+                  "OSMAC mVc RM","RS RM")
+  Colors_mVc<-c("#E28490","#E28490","#E28490","#E28490","#E28490",
+                "#1DA117","#1DCC77",
+                "#FF0000","black")
+}  
+  
+if(params$Model_Path=="Model_2")
+{
+  # mMSE models Colors
+  Selected_mMSE<-c(paste0("OSMAC mMSE AM ",5:10),
+                   "OSMAC mMSE MF Equal","OSMAC mMSE MF UnEqual",
+                   "OSMAC mMSE RM","RS RM")
+  Colors_mMSE<-c("#E28490","#E28490","#E28490","#E28490","#E28490","#E28490", 
+                 "#1DA117","#1DCC77",
+                 "#FF0000","black")
+                          
+  # mvc models
+  Selected_mVc<-c(paste0("OSMAC mVc AM ",5:10),
+                  "OSMAC mVc MF Equal","OSMAC mVc MF UnEqual",
+                  "OSMAC mVc RM","RS RM")
+  Colors_mVc<-c("#E28490","#E28490","#E28490","#E28490","#E28490","#E28490",
+                "#1DA117","#1DCC77",
+                "#FF0000","black")
+}  
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "MSE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p1
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "MSE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p2
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "Model Information"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Estimated Model Information",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p3
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "Model Information"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Estimated Model Information",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p4
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "Accuracy"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Average Accuracy",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p5
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "Accuracy"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Average_Accuracy",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p6
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "MSE_MLE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE for MLE",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p7
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "MSE_MLE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE for MLE ",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p8
+
+ggarrange(p1,p2,p3,p4,nrow = 4)
+ggarrange(p5,p6,nrow = 2)
+ggarrange(p7,p8,nrow = 2)
+```
+
+# Model Set 4
+
+```{r Identical r0 Plots Model Set 4}
+  # mMSE models Colors
+  Selected_mMSE<-c(paste0("OSMAC mMSE AM ",11:14),
+                   "OSMAC mMSE MF Equal","OSMAC mMSE MF UnEqual",
+                   "OSMAC mMSE RM","RS RM")
+  Colors_mMSE<-c("#E28490","#E28490","#E28490","#E28490", 
+                 "#1DA117","#1DCC77",
+                 "#FF0000","black")
+                          
+  # mvc models
+  Selected_mVc<-c(paste0("OSMAC mVc AM ",11:14),
+                  "OSMAC mVc MF Equal","OSMAC mVc MF UnEqual",
+                  "OSMAC mVc RM","RS RM")
+  Colors_mVc<-c("#E28490","#E28490","#E28490","#E28490", 
+                "#1DA117","#1DCC77",
+                "#FF0000","black")
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "MSE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p1
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "MSE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p2
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "Model Information"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Estimated Model Information",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p3
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "Model Information"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Estimated Model Information",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p4
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "Accuracy"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Average Accuracy",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p5
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "Accuracy"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Average_Accuracy",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p6
+
+Final_Data[(Final_Data$Model %in% Selected_mMSE) & (Final_Data$Metric == "MSE_MLE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE for MLE",subtitle = "mMSE")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p7
+
+Final_Data[(Final_Data$Model %in% Selected_mVc) & (Final_Data$Metric == "MSE_MLE"),] %>%
+  ggplot(.,aes(x=Subsample_Size,y=`Estimated Values`,color=Model))+
+  geom_point(size=1.75)+geom_line(size=1)+
+  scale_color_manual(values=Colors_mMSE)+
+  theme_light()+xlab("Sub sample size")+
+  ggtitle("Comparing Simulated MSE for MLE ",subtitle = "mVc")+
+  ylab("Estimated Values")+facet_wrap(~Data,scales = "free_y")->p8
+
+ggarrange(p1,p2,p3,p4,nrow = 4)
+ggarrange(p5,p6,nrow = 2)
+ggarrange(p7,p8,nrow = 2)
+```
