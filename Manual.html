@@ -455,8 +455,8 @@ distribution.</li>
 methods based on the variety of Big data sets and Rscripts to smoothly
 transfer methods and respective data based on real models.</li>
 </ul>
-<div id="classicalr_scripts" class="section level3">
-<h3>2.2.1 Classical/R_Scripts</h3>
+<div id="r_scripts" class="section level3">
+<h3>2.2.1 R_Scripts</h3>
 <p>We need to transfer two forms of data, 1. Big Data set and other
 information essential for the methods. 2. Functions for the sub-sampling
 methods.</p>
@@ -468,7 +468,7 @@ simulation setup.</li>
 <h4>2.2.1.1 Setup_Data.R</h4>
 <ul>
 <li>Data stored in <strong>Generate_Big_Data</strong> is transferred to
-<strong>Classical/Analysis</strong>.</li>
+<strong>Analysis</strong>.</li>
 </ul>
 </div>
 <div id="random_sampling_setup.r" class="section level4">
@@ -515,8 +515,8 @@ at each simulation and are applied for the generated big data.</li>
 </div>
 </div>
 </div>
-<div id="classicalanalysis" class="section level2">
-<h2>2.2.2 Classical/Analysis</h2>
+<div id="analysis" class="section level2">
+<h2>2.2.2 Analysis</h2>
 <p>Each model related covariate data is separately used on each
 subsampling method individually.</p>
 <div id="random-sampling" class="section level4">
@@ -631,10 +631,9 @@ results from the optimal sub-sampling and model robust optimal sampling
 methods through the Rmarkdown file
 <strong>OSMAC_Method.Rmd</strong>.</p></li>
 <li><p><strong>Summary_Rmarkdown.R</strong> in the
-<strong>Rmarkdown/Classical/Summary</strong> folder compares the
-sub-sampling methods through Mean Squared Error, variance and model
-information through the
-<strong>Best_Subsampling_Method.Rmd</strong>.</p></li>
+<strong>Rmarkdown/Summary</strong> folder compares the sub-sampling
+methods through Mean Squared Error, variance and model information
+through the <strong>Best_Subsampling_Method.Rmd</strong>.</p></li>
 </ul>
 </div>
 <div id="htmloutputs" class="section level2">
@@ -657,9 +656,8 @@ are stored as html files.</li>
 <strong>Best_Subsampling_Method.Rmd</strong> are stored as html
 files.</li>
 </ul>
-<div id="summaryclassicalmodel_1-or-2-or-3-or-4dataefficiency" class="section level3">
-<h3>2.6.1 Summary/Classical/Model_[1 or 2 or 3 or
-4]/Data/Efficiency</h3>
+<div id="summarymodel_1-or-2-or-3-or-4dataefficiency" class="section level3">
+<h3>2.6.1 Summary/Model_[1 or 2 or 3 or 4]/Data/Efficiency</h3>
 <ul>
 <li><p>When running the Rmarkdown files
 <strong>Random_Sampling.Rmd</strong>,
@@ -668,7 +666,7 @@ files.</li>
 <strong>OSMAC_Model_Free_Method.Rmd</strong> summary data (MSE and model
 information) are stored here.</p></li>
 <li><p>Using these data files only summarising through the files in
-<strong>Rmarkdown/Classical/Summary</strong> occurs.</p></li>
+<strong>Rmarkdown/Summary</strong> occurs.</p></li>
 </ul>
 </div>
 </div>
@@ -680,8 +678,9 @@ Publication_Ready_Command.R</h2>
 <strong>Publication.Rmd</strong> on every model and its respective big
 data.</p></li>
 <li><p>Use <strong>Articles.Rmd</strong> to generate plots relevant to
-the paper as pdf files <strong>SMSE_MI_LR_TV_Nor_mMSE.pdf</strong> and
-<strong>SMSE_MI_LR_TV_Nor_mVc.pdf</strong>.</p></li>
+the paper as pdf files
+<strong>Article_Plots/SMSE_MI_LR_TV_Nor_mMSE.pdf</strong> and
+<strong>Article_Plots/SMSE_MI_LR_TV_Nor_mVc.pdf</strong>.</p></li>
 </ul>
 </div>
 </div>
