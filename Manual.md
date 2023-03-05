@@ -9,7 +9,7 @@ output:
 
 # 1. Overview
 
-* The project ***"Normal_Distribution"*** or ***"RS_OS_MROS_LR_TwoVar_Normal"*** is developed for the purpose of conducting a simulation study such that estimated model parameters of the logistic regression model can be compared through the obtained informative samples from the Big Data using optimal sub-sampling and model robust optimal sub-sampling methods.
+* The project ***"Normal_Distribution"*** or ***"RS_OS_MROS_LR_TwoVar_Normal_Alpha"*** is developed for the purpose of conducting a simulation study such that estimated model parameters of the logistic regression model can be compared through the obtained informative samples from the Big Data using optimal sub-sampling and model robust optimal sub-sampling methods.
 
 * This document aims to state every important part of this R project thoroughly in terms of folder structure related to used sub-sampling methods. 
 
@@ -43,15 +43,13 @@ output:
 
 * Based on the real model of the logistic regression data we have four folders and in each folder their respective Big Data sets are stored by using ***Checking_SP_Model_1_Normal_Special.R***.
 
-* To ensure that the data generated from the true model performs better than the assumed models run ***Check_Data.Rmd*** and look at the plots stored as **Model_[1 or 2 or 3 or 4]_X[1 or 2]**.
+* To ensure that the data generated from the true model performs better than the assumed models run ***Check_Data.Rmd*** and look at the plots stored as **Model_[1 or 2]_X[1 or 2]**.
 
 * In the Rscript, ***Replicates*** - number of unique simulations, ***Subsample_Size*** - target sample size, ***N*** - Big data size, ***Theta*** - Real model parameters, ***r0*** - initial sample size for optimal and model robust optimal sub-sampling.
 
 * As of now the model parameters and their respective response compositions are 
-1. $\theta=[-1.0, 0.5, 0.1]$ generates data for Model 1 of $x_1,x_2$.
-2. $\theta=[-1.0, 0.5, 0.5, 0.7]$ generates data for Model 2 of $x_1,x_2,x^2_1$.
-3. $\theta=[-1.0, 0.5, 0.5, 0.3]$ generates data for Model 3 of $x_1,x_2,x^2_2$.
-4. $\theta=[-1.0, 0.5, 0.5, 0.5, 0.5]$ generates data for Model 4 of $x_1,x_2,x^2_1,x^2_2$.
+1. $\theta=[-1.0, 0.8, 0.5]$ generates data for Model 1 of $x_1,x_2$.
+2. $\theta=[-1.0, 0.8, 0.7, 0.5]$ generates data for Model 2 of $x_1,x_2,x_3$.
 
 * For each model structure covariate data was generated only through zero covariance matrices with mean of zeros from the Multivariate Normal distribution. 
 
@@ -165,7 +163,7 @@ Each model related covariate data is separately used on each subsampling method 
 
 * Here, summaries from the Rmarkdown files **Best_Subsampling_Method.Rmd** are stored as html files. 
 
-### 2.6.1 Summary/Model_[1 or 2 or 3 or 4]/Data/Efficiency
+### 2.6.1 Summary/Model_[1 or 2]/Data/Efficiency
 
 * When running the Rmarkdown files **Random_Sampling.Rmd**, **RE_Random_Sampling.Rmd**, **OSMAC_Method.Rmd** and **OSMAC_Model_Free_Method.Rmd** summary data (MSE and model information) are stored here.
 
